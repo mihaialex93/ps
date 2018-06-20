@@ -1,0 +1,53 @@
+$vcenter="name"
+Connect-VIServer $vcenter
+# HTML formatting
+$a = "<style>"
+$a = $a + "BODY{background-color:white;}"
+$a = $a + "TABLE{border-width: 1px;border-style: solid;border-color: black;border-collapse: collapse;}"
+$a = $a + "TH{border-width: 1px;padding: 5px;border-style: solid;border-color: black;foreground-color: black;background-color: LightBlue}"
+$a = $a + "TD{border-width: 1px;padding: 5px;border-style: solid;border-color: black;foreground-color: black;background-color: white}"
+$a = $a + "</style>"
+# HTML formatting
+
+# Main section of check
+
+$date = get-date
+$datefile = get-date -uformat '%m-%d-%Y-%H%M%S'
+$filename = "C:\Users\XY\Desktop\" + $datefile + ".htm"
+
+# Get list of VMs with snapshots
+$ss = Get-vm | Get-Snapshot
+#$ss | Select-Object vm, name, description, powerstate | ConvertTo-HTML -head $a -body "<H2>VM Snapshot Report</H2>"| Out-File $filename
+$ss | Select-Object vm, name, description | ConvertTo-HTML -head $a -body "<H2>VM Snapshot Report</H2>"| Out-File $filename
+# Get list of VMs with snapshots
+
+
+#remove
+$maxtasks = 5
+$snaps = Get-VM  | Get-Snapshot | Where { $_.Name -like "auto-*" }
+$i = 0
+while($i -lt $snaps.Count) {
+	Remove-Snapshot -Snapshot $snaps[$i] -RunAsync -Confirm:$false
+	$tasks = Get-Task -Status "Running" | where {$_.Name -eq "RemoveSnapshot_Task"}
+	while($tasks.Count -gt ($maxtasks-1)) 
+    {
+		sleep 30
+		$tasks = Get-Task -Status "Running" | where {$_.Name -eq "RemoveSnapshot_Task"}
+    }
+     $i++
+}
+#remove
+
+# Create mail message
+$server = "smtp.domain.com"
+$port = 25
+$to      = "user@domain.com"
+$from    = "user@domain.com"
+$subject = "VM Snapshot Report"
+$body = Get-Content $filename
+
+$message = New-Object system.net.mail.MailMessage $from, $to, $subject, $body
+
+# Create SMTP client
+$client = New-Object system.Net.Mail.SmtpClient $server, $port
+$client.Send($message)
