@@ -9,9 +9,6 @@ Select Name,
 
 ConvertTo-Html | Out-String | Set-Content -Path .\report.html
 
-
-Invoke-Item -Path .\report.html
-
 #remove snapshots
 $maxtasks = 5
 $snaps = Get-VM  | Get-Snapshot | Where { $_.Name -like "auto-*" }
